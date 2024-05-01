@@ -5,6 +5,12 @@ import copy
 from scipy.ndimage import zoom
 import os
 
+# XXXX
+shrink_factor = 4
+# XXXX
+no_resize = True
+# XXXX
+save_interval = 1000
 
 def create_tensor(w, h):
     new_tensor = np.ones((4, h, w))
@@ -12,12 +18,9 @@ def create_tensor(w, h):
 
 # convert image to (3, h, w) tensor
 def img_to_tensor(img):
-    img_tensor = np.moveaxis(np.array(img)/255, [0, 1, 2], [1, 2, 0])
-    print("shape", img_tensor.shape)
-    sizes = (img_tensor.shape[1], img_tensor.shape[2])
-
+    img_array = np.array(img)
     # print(img_tensor)
-    if img_tensor.shape[0] == 3:
+    if len(img_array.shape) == 2:
         print("no transparency")
         alpha_array = np.ones((1,img_tensor.shape[1], img_tensor.shape[2]))
         # alpha_array = np.array(np.random.rand(1,img_tensor.shape[1], img_tensor.shape[2]))
@@ -26,6 +29,11 @@ def img_to_tensor(img):
         img_tensor = np.vstack((img_tensor, alpha_array))
         # print(img_tensor.shape)
         # img_tensor[img_tensor.shape[0]] = np.ones(sizes)
+
+
+    img_tensor = np.moveaxis(img_array/255, [0, 1, 2], [1, 2, 0])
+    print("shape", img_tensor.shape)
+    sizes = (img_tensor.shape[1], img_tensor.shape[2])
     return img_tensor
 
 def tensor_to_img(tensor):
@@ -59,7 +67,6 @@ def load_images_from_directory(directory, factor=1):
     return image_objects
 
 
-shrink_factor = 16
 # Example usage:
 image_objects_array = load_images_from_directory("ingredients/")
 target_objects_array = load_images_from_directory("targets/")
@@ -114,27 +121,51 @@ def apply(gene, ingredients, target, canvas):
     dest_y0 = int(canvas_height * y_dest_0)
     dest_x1 = int(canvas_width * x_dest_1)
     dest_y1 = int(canvas_height * y_dest_1)
+
+
+    # resize the splice
+    splice_width = (origin_x1-origin_x0)
+    splice_height = (origin_y1-origin_y0)
+    destination_width = (dest_x1-dest_x0)
+    destination_height = (dest_y1-dest_y0)
+
     try:
-        # resize the splice
-        splice_width = (origin_x1-origin_x0)
-        splice_height = (origin_y1-origin_y0)
-        
-        destination_width = (dest_x1-dest_x0)
-        destination_height = (dest_y1-dest_y0)
-
-        width_factor =  destination_width / splice_width
-        height_factor =  destination_height / splice_height
-
-        splice = zoom(splice, (1, height_factor, width_factor), order=3)
-
-        if width_factor == 0 or height_factor == 0:
-            # print("slice too thin")
+        if no_resize:
+        # no resizing
             pass
-        else:
+            dest_x1 = dest_x0 + splice_width
+            dest_y1 = dest_y0 + splice_height
+            ## oob right
+            if dest_x1 > canvas_width:
+                # print("oob right")
+                dest_x1 = canvas_width
+                origin_x1 = origin_x0 + dest_x1 - dest_x0
+            
+            ## oob down
+            if dest_y1 > canvas_height:
+                # print("oob down")
+                dest_y1 = canvas_height
+                origin_y1 = origin_y0 + dest_y1 - dest_y0
+
             # try:
-            canvas[:,dest_y0:dest_y1, dest_x0:dest_x1] = splice
+            canvas[:,dest_y0:dest_y1, dest_x0:dest_x1] = ingredient[:,origin_y0:origin_y1, origin_x0:origin_x1]
             # except:
-                # print("fuck this, moveon")
+                # print("oob crap")
+                # pass
+        else:
+            
+            width_factor =  destination_width / splice_width
+            height_factor =  destination_height / splice_height
+            splice = zoom(splice, (1, height_factor, width_factor), order=3)
+
+            if width_factor == 0 or height_factor == 0:
+                # print("slice too thin")
+                pass
+            else:
+                # try:
+                canvas[:,dest_y0:dest_y1, dest_x0:dest_x1] = splice
+                # except:
+                    # print("fuck this, moveon")
     except ZeroDivisionError:
         # print("slice too thin and you divided by 0")
         pass
@@ -163,12 +194,12 @@ for gene in genes:
 last_distance = distance(attempt[0:3,:,:], target_objects_array_mini[0][0:3,:,:])
 print("initial distance:", last_distance)
 
-for ctr in range(10000):
+for ctr in range(10000000):
     # retain old genes
     try:
         old_genome = copy.deepcopy(genes)
 
-        if random.random() < 0.9:
+        if random.random() < 0.95:
             for _ in range(len(old_genome)//10):
                 rand_gene_i = np.random.randint(0, len(genes))
                 rand_chroma_i = np.random.randint(0, len(genes[rand_gene_i]))
@@ -178,8 +209,8 @@ for ctr in range(10000):
             # if random.random() < 0.66:
             genes.append(make_gene())
             # else:
-                # random_index = random.randint(0, len(genes) - 1)
-                # removed_gene = genes.pop(random_index)
+            #     random_index = random.randint(0, len(genes) - 1)
+            #     removed_gene = genes.pop(random_index)
         attempt = np.ones_like(target_objects_array_mini[0])
 
         genes = sorted(genes, key=lambda elem: elem[9])
@@ -195,6 +226,9 @@ for ctr in range(10000):
         else:
             print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " worse", new_distance - last_distance)
             genes = old_genome
+
+        if ctr % save_interval == 0:
+            reconstruct()
     except KeyboardInterrupt:
         print("alright, over")
         reconstruct()
@@ -202,6 +236,7 @@ for ctr in range(10000):
 
 
 
+reconstruct()
 # eye = img_to_tensor(Image.open("eye.png"))
 # print(eye)
 # print(eye.shape)

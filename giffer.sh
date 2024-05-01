@@ -1,1 +1,1 @@
-convert -delay 20 -loop 0 progress/* generation.gif
+convert -delay 5 -loop 0 progress/* generation.gif
