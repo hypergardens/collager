@@ -190,7 +190,7 @@ for ctr in range(10000):
         if new_distance <= last_distance:
             print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " changed", new_distance - last_distance)
             if new_distance < last_distance:
-                tensor_to_img(attempt).save("progress"+"{:05d}".format(ctr)+".png")
+                tensor_to_img(attempt).save("./progress/"+"{:05d}".format(ctr)+".png")
             last_distance = new_distance
         else:
             print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " worse", new_distance - last_distance)
