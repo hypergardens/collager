@@ -195,6 +195,7 @@ best = np.ones_like(target_objects_array_mini[0])
 attempt = np.ones_like(target_objects_array_mini[0])
 
 genes = [make_gene() for x in range(10)]
+old_genome = copy.deepcopy(genes)
 for gene in genes:
     apply(gene, image_objects_array_mini, attempt)
     apply(gene, image_objects_array_mini, best)
@@ -240,11 +241,11 @@ for ctr in range(10000000):
         break
 
     if ctr % save_interval == 0:
-        reconstruct(genes, "result_saved")
+        reconstruct(old_genome, "result_saved")
 
 
 
-reconstruct(genes, "result_final")
+reconstruct(old_genome, "result_final")
 # eye = img_to_tensor(Image.open("eye.png"))
 # print(eye)
 # print(eye.shape)
