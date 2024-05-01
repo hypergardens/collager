@@ -11,6 +11,8 @@ shrink_factor = 4
 no_resize = True
 # XXXX
 save_interval = 1000
+# XXXX sort and add things at any depth
+sort_genes = False
 
 def create_tensor(w, h):
     new_tensor = np.ones((4, h, w))
@@ -182,7 +184,8 @@ def distance(canvas, target):
 def reconstruct(genes, name):
     canvas = np.ones_like(target_objects_array[0])
 
-    genes = sorted(genes, key=lambda elem: elem[9])
+    if sort_genes:
+        genes = sorted(genes, key=lambda elem: elem[9])
     print("reconstructing", canvas.shape)
     for ctr in range(len(genes)):
         print("applying gene", ctr, "of", len(genes))
@@ -211,7 +214,7 @@ for ctr in range(10000000):
         if random.random() < 0.95:
             for _ in range(len(old_genome)//10):
                 rand_gene_i = np.random.randint(0, len(genes))
-                rand_chroma_i = np.random.randint(0, len(genes[rand_gene_i])-1)
+                rand_chroma_i = np.random.randint(0, len(genes[rand_gene_i]))
                 value = genes[rand_gene_i][rand_chroma_i]
                 genes[rand_gene_i][rand_chroma_i] = np.random.rand()
         else:
@@ -222,7 +225,8 @@ for ctr in range(10000000):
             #     removed_gene = genes.pop(random_index)
         attempt = np.ones_like(target_objects_array_mini[0])
 
-        genes = sorted(genes, key=lambda elem: elem[9])
+        if sort_genes:
+            genes = sorted(genes, key=lambda elem: elem[9])
         for gene in genes:
             apply(gene, image_objects_array_mini, attempt)
 
