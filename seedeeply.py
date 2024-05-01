@@ -26,15 +26,15 @@ def img_to_tensor(img):
         # alpha_array = np.array(np.random.rand(1,img_tensor.shape[1], img_tensor.shape[2]))
         # print("alpha_array", alpha_array)
         # print("alpha_array.shape", alpha_array.shape)
-        img_tensor = np.vstack((img_tensor, alpha_array))
+        img_tensor = np.vstack((img_array, alpha_array))
         # print(img_tensor.shape)
         # img_tensor[img_tensor.shape[0]] = np.ones(sizes)
 
 
-    img_tensor = np.moveaxis(img_array/255, [0, 1, 2], [1, 2, 0])
-    print("shape", img_tensor.shape)
-    sizes = (img_tensor.shape[1], img_tensor.shape[2])
-    return img_tensor
+    img_array = np.moveaxis(img_array/255, [0, 1, 2], [1, 2, 0])
+    print("shape", img_array.shape)
+    sizes = (img_array.shape[1], img_array.shape[2])
+    return img_array
 
 def tensor_to_img(tensor):
     # print("raw:")
