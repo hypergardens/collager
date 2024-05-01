@@ -16,22 +16,22 @@ def create_tensor(w, h):
     new_tensor = np.ones((4, h, w))
     return new_tensor
 
-# convert image to (3, h, w) tensor
+# convert image to (4, h, w) tensor
 def img_to_tensor(img):
     img_array = np.array(img)
+    img_array = np.moveaxis(img_array/255, [0, 1, 2], [1, 2, 0])
     # print(img_array)
     if img_array.shape[0] == 3:
         print("no transparency")
-        alpha_array = np.ones((1,img_tensor.shape[1], img_tensor.shape[2]))
-        # alpha_array = np.array(np.random.rand(1,img_tensor.shape[1], img_tensor.shape[2]))
+        alpha_array = np.ones((1, img_array.shape[1], img_array.shape[2]))
+        # alpha_array = np.array(np.random.rand(1,img_array.shape[1], img_array.shape[2]))
         # print("alpha_array", alpha_array)
         # print("alpha_array.shape", alpha_array.shape)
-        img_tensor = np.vstack((img_array, alpha_array))
-        # print(img_tensor.shape)
-        # img_tensor[img_tensor.shape[0]] = np.ones(sizes)
+        img_array = np.vstack((img_array, alpha_array))
+        print(img_array.shape)
+        # img_array[img_array.shape[0]] = np.ones(sizes)
 
 
-    img_array = np.moveaxis(img_array/255, [0, 1, 2], [1, 2, 0])
     print("shape", img_array.shape)
     sizes = (img_array.shape[1], img_array.shape[2])
     return img_array
