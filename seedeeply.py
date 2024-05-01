@@ -177,7 +177,8 @@ def distance(canvas, target):
 def reconstruct():
     canvas = np.ones_like(target_objects_array[0])
     print("reconstructing", canvas.shape)
-    for gene in genes:
+    for ctr in range(len(genes)):
+        print("applying gene", ctr, "of", len(genes))
         apply(gene, image_objects_array,target_objects_array, canvas)
 
     tensor_to_img(canvas).save("final.png")
