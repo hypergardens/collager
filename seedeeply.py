@@ -179,7 +179,7 @@ def distance(canvas, target):
     return np.sum(np.abs(canvas - target)) ##/ (canvas.shape[1] * canvas.shape[2] * 3)
     # return np.sum(np.power(np.abs(canvas - target),2)) ##/ (canvas.shape[1] * canvas.shape[2] * 3)
 
-def reconstruct(genes):
+def reconstruct(genes, name):
     canvas = np.ones_like(target_objects_array[0])
 
     genes = sorted(genes, key=lambda elem: elem[9])
@@ -188,7 +188,7 @@ def reconstruct(genes):
         print("applying gene", ctr, "of", len(genes))
         apply(genes[ctr], image_objects_array, canvas)
 
-    tensor_to_img(canvas).save("result.png")
+    tensor_to_img(canvas).save(str(name) + ".png")
 
 
 best = np.ones_like(target_objects_array_mini[0])
@@ -240,11 +240,11 @@ for ctr in range(10000000):
         break
 
     if ctr % save_interval == 0:
-        reconstruct(genes)
+        reconstruct(genes, "result_saved")
 
 
 
-reconstruct(genes)
+reconstruct(genes, "result_final")
 # eye = img_to_tensor(Image.open("eye.png"))
 # print(eye)
 # print(eye.shape)
