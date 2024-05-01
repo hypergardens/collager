@@ -45,19 +45,26 @@ def tensor_to_img(tensor):
     return Image.fromarray(reconst)
 
 
-def load_images_from_directory(directory):
+def load_images_from_directory(directory, factor=1):
     image_objects = []
     for filename in sorted(os.listdir(directory)):
         if filename.endswith(".png") or filename.endswith(".jpg"):
             # Load the image using PIL
             image_path = os.path.join(directory, filename)
             image = Image.open(image_path)
-            image_objects.append(img_to_tensor(image))
+            if (image.width // factor >= 1 and image.height // factor >= 1):
+                image_objects.append(img_to_tensor(image.resize((image.width // factor, image.height // factor))))
+            else:
+                image_objects.append(img_to_tensor(image.resize((1,1))))
     return image_objects
 
+
+shrink_factor = 16
 # Example usage:
 image_objects_array = load_images_from_directory("ingredients/")
 target_objects_array = load_images_from_directory("targets/")
+image_objects_array_mini = load_images_from_directory("ingredients/", shrink_factor)
+target_objects_array_mini = load_images_from_directory("targets/", shrink_factor)
 
 
 def make_gene():
@@ -74,9 +81,9 @@ gene = [0.4, # image index
         0.8, # y destination 1
         0]   # z index
 
-def apply(gene, canvas):
+def apply(gene, ingredients, target, canvas):
     # image = gene[0]
-    ingredient = image_objects_array[int(gene[0]*len(image_objects_array))]
+    ingredient = ingredients[int(gene[0]*len(ingredients))]
 
     # print("ingredient shape:", ingredient.shape)
     # print("canvas shape:", canvas.shape)
@@ -136,51 +143,65 @@ def distance(canvas, target):
     return np.sum(np.abs(canvas - target)) ##/ (canvas.shape[1] * canvas.shape[2] * 3)
     # return np.sum(np.power(np.abs(canvas - target),2)) ##/ (canvas.shape[1] * canvas.shape[2] * 3)
 
-best = np.ones_like(target_objects_array[0])
-attempt = np.ones_like(target_objects_array[0])
+def reconstruct():
+    canvas = np.ones_like(target_objects_array[0])
+    print("reconstructing", canvas.shape)
+    for gene in genes:
+        apply(gene, image_objects_array,target_objects_array, canvas)
+
+    tensor_to_img(canvas).save("final.png")
+
+
+best = np.ones_like(target_objects_array_mini[0])
+attempt = np.ones_like(target_objects_array_mini[0])
 
 genes = [make_gene() for x in range(10)]
 for gene in genes:
-    apply(gene, attempt)
-    apply(gene, best)
+    apply(gene, image_objects_array_mini, target_objects_array_mini, attempt)
+    apply(gene, image_objects_array_mini, target_objects_array_mini, best)
 
-last_distance = distance(attempt[0:3,:,:], target_objects_array[0][0:3,:,:])
+last_distance = distance(attempt[0:3,:,:], target_objects_array_mini[0][0:3,:,:])
 print("initial distance:", last_distance)
 
 for ctr in range(10000):
     # retain old genes
-    old_genome = copy.deepcopy(genes)
+    try:
+        old_genome = copy.deepcopy(genes)
 
-    if random.random() < 0.9:
-        for _ in range(len(old_genome)//10):
-            rand_gene_i = np.random.randint(0, len(genes))
-            rand_chroma_i = np.random.randint(0, len(genes[rand_gene_i]))
-            value = genes[rand_gene_i][rand_chroma_i]
-            genes[rand_gene_i][rand_chroma_i] = np.random.rand()
-    else:
-        # if random.random() < 0.66:
-        genes.append(make_gene())
-        # else:
-            # random_index = random.randint(0, len(genes) - 1)
-            # removed_gene = genes.pop(random_index)
-    attempt = np.ones_like(target_objects_array[0])
+        if random.random() < 0.9:
+            for _ in range(len(old_genome)//10):
+                rand_gene_i = np.random.randint(0, len(genes))
+                rand_chroma_i = np.random.randint(0, len(genes[rand_gene_i]))
+                value = genes[rand_gene_i][rand_chroma_i]
+                genes[rand_gene_i][rand_chroma_i] = np.random.rand()
+        else:
+            # if random.random() < 0.66:
+            genes.append(make_gene())
+            # else:
+                # random_index = random.randint(0, len(genes) - 1)
+                # removed_gene = genes.pop(random_index)
+        attempt = np.ones_like(target_objects_array_mini[0])
 
-    genes = sorted(genes, key=lambda elem: elem[9])
-    for gene in genes:
-        apply(gene, attempt)
+        genes = sorted(genes, key=lambda elem: elem[9])
+        for gene in genes:
+            apply(gene, image_objects_array_mini,target_objects_array_mini, attempt)
 
-    new_distance = distance(attempt[0:3,:,:], target_objects_array[0][0:3,:,:])
-    if new_distance <= last_distance:
-        print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " changed", new_distance - last_distance)
-        if new_distance < last_distance:
-            tensor_to_img(attempt).save("progress"+"{:05d}".format(ctr)+".png")
-        last_distance = new_distance
-    else:
-        print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " worse", new_distance - last_distance)
-        genes = old_genome
+        new_distance = distance(attempt[0:3,:,:], target_objects_array_mini[0][0:3,:,:])
+        if new_distance <= last_distance:
+            print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " changed", new_distance - last_distance)
+            if new_distance < last_distance:
+                tensor_to_img(attempt).save("progress"+"{:05d}".format(ctr)+".png")
+            last_distance = new_distance
+        else:
+            print("ctr", ctr, str(len(genes)), "genes,", "dist", min(new_distance,last_distance), " worse", new_distance - last_distance)
+            genes = old_genome
+    except KeyboardInterrupt:
+        print("alright, over")
+        reconstruct()
+        break
 
 
-tensor_to_img(attempt).save("final.png")
+
 # eye = img_to_tensor(Image.open("eye.png"))
 # print(eye)
 # print(eye.shape)
